@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<group>
+	<Mesh_vertex_radius>1</Mesh_vertex_radius>
+	<Mesh_columns>10</Mesh_columns>
+	<Mesh_rows>10</Mesh_rows>
+	<Vertex_density>0.07</Vertex_density>
+	<Vertex_bounce>0.09</Vertex_bounce>
+	<Vertex_friction>0.03</Vertex_friction>
+	<Joint_frequency>0</Joint_frequency>
+	<Joint_damping>0</Joint_damping>
+</group>
