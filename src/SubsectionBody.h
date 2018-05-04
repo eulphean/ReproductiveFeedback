@@ -38,6 +38,7 @@ class SubsectionBody {
   private:
     void setupMeshPlane(glm::vec2 meshOrigin, SoftBodyProperties softBodyProperties);
     void createBox2DSprings(ofxBox2d &box2d, SoftBodyProperties softBodyProperties);
+    void addForce();
   
     std::vector<std::shared_ptr<ofxBox2dCircle>> vertices; // Every vertex in the mesh is a circle.
     std::vector<std::shared_ptr<ofxBox2dJoint>> joints; // Joints connecting those vertices.

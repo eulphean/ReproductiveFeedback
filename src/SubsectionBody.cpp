@@ -3,6 +3,7 @@
 void SubsectionBody::setup(ofxBox2d &box2d, glm::vec2 meshOrigin, SoftBodyProperties softBodyProperties) {
   setupMeshPlane(meshOrigin, softBodyProperties); // Create a mesh.
   createBox2DSprings(box2d, softBodyProperties); // Create box2d structure.
+  addForce();
 }
 
 void SubsectionBody::update() {
@@ -26,7 +27,6 @@ void SubsectionBody::update() {
 void SubsectionBody::draw(bool showSoftBody) {
   // Draw the meshes.
   mesh.draw();
-
   // Draw the soft bodies.
   if (showSoftBody) {
     ofPushStyle();
@@ -41,6 +41,8 @@ void SubsectionBody::draw(bool showSoftBody) {
         j->draw();
       }
     ofPopStyle();
+  } else {
+
   }
 }
 
@@ -137,5 +139,14 @@ void SubsectionBody::createBox2DSprings(ofxBox2d &box2d, SoftBodyProperties soft
         joints.push_back(joint);
       }
     }
+  }
+}
+
+void SubsectionBody::addForce() {
+  int increment = 5;
+  for (int i = 0; i < vertices.size(); i+=increment) {
+    auto v = vertices[i];
+    auto pos = v -> getPosition();
+    v -> addForce(glm::vec2(ofRandom(-2, 2), ofRandom(-2, 2)), 2);
   }
 }

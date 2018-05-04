@@ -174,6 +174,13 @@ void ofApp::populateFilters() {
     watercolorChain->addFilter(new VignetteFilter());
   
   filters.push_back(watercolorChain);
+  
+  Abstract3x3ConvolutionFilter * convolutionFilter1 = new Abstract3x3ConvolutionFilter(grabber.getWidth(), grabber.getHeight());
+  convolutionFilter1->setMatrix(-1, 0, 1, -2, 0, 2, -1, 0, 1);
+  filters.push_back(convolutionFilter1);
+  
+  filters.push_back(new DisplacementFilter("img/glass/3.jpg", grabber.getWidth(), grabber.getHeight(), 40.0));
+  
   filters.push_back(new PerlinPixellationFilter(grabber.getWidth(), grabber.getHeight()));
   filters.push_back(new SobelEdgeDetectionFilter(grabber.getWidth(), grabber.getHeight()));
   filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
@@ -227,7 +234,13 @@ void ofApp::createSubsectionBody() {
   // Push this new subsection body to our collection.
   softBodies.push_back(body);
   
-  std::cout<<"Soft bodies." << softBodies.size() << endl;
+  // Clear half of the meshes.
+  if (softBodies.size() > 6) {
+    softBodies.erase(softBodies.begin(), softBodies.begin() + softBodies.size() / 2);
+  }
+  
+  std::cout << softBodies.size();
+  
   
   // Create new torn subsection and push it to the collection. 
   Subsection tornSub = Subsection(s.origin, s.filterIdx);
