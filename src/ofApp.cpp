@@ -35,18 +35,26 @@ void ofApp::setup()
     int height = ofGetHeight();
     int width = ofGetWidth();
     grabber.setup(width, height);
-    
-    // Setup the mesh and create vertices and joints.
-    setupMeshPlane();
-    createBox2DSprings();
+  
+    // Create all the subsections of the image.
+    createImageSubsections();
+
+    // Setup a mesh and box2d body for an image subsection.
+    createSubsectionBody();
 }
 
 void ofApp::update()
 {
-    // Get image subsection texture.
+    // Update grabber.
     grabber.update();
+  
+    // Update box2d
     box2d.update();
-    updateMeshPlane();
+  
+    // Update all soft bodies.
+    for (auto &s : softBodies) {
+      s.update();
+    }
 }
 
 void ofApp::draw()
@@ -56,56 +64,46 @@ void ofApp::draw()
     ofTranslate(grabber.getWidth(), 0);
     ofScale(-1, 1, 1);
   
-    // Texture 1.
+    // Texture 1 (without any filter)
     ofPushStyle();
+      // Original grabber texture.
       grabber.draw(0, 0, grabber.getWidth(), grabber.getHeight());
     ofPopStyle();
   
-    // Print torn subsections. Replace torn subsections with underneath
-    // subsection.
+    // Torn subsections.
     if (tornSubsections.size() > 0) {
       for (auto s: tornSubsections) {
-        std::cout << "X: " << s.x << ", Y: " << s.y << endl;
         ofPushStyle();
-        ofSetColor(ofColor::red);
-        grabber.getTexture().drawSubsection(s.x, s.y, 50, 50, s.x, s.y);
-        ofPopStyle();
-      }
-    }
-  
-    // Draw the meshes.
-    for (auto mesh: meshes) {
-      // Bind the texture.
-      grabber.getTexture().bind();
-        // Draw mesh
-        mesh.draw();
-      grabber.getTexture().unbind();
-    }
-  
-    // Draw the soft bodies.
-    for (auto body: softBodies) {
-      // Draw joints and vertices for the mesh.
-      if (showSoftBody) {
-        ofPushStyle();
-          for(auto v: body.vertices) {
-            ofNoFill();
+          if (s.filterIdx == 2) {
             ofSetColor(ofColor::red);
-            v->draw();
+          }
+        
+          if (s.filterIdx == 3) {
+            ofSetColor(ofColor::blue);
           }
 
-          for(auto j: body.joints) {
-            ofSetColor(ofColor::blue);
-            j->draw();
-          }
+          grabber.getTexture().drawSubsection(s.origin.x, s.origin.y, 40, 40, s.origin.x, s.origin.y);
         ofPopStyle();
       }
+    }
+  
+    // Draw the soft body.
+    for (auto b: softBodies) {
+      ofPushStyle();
+      if (b.filterIdx == 2) {
+        ofSetColor(ofColor::red);
+      }
+      
+      grabber.getTexture().bind();
+      b.draw(showSoftBody);
+      grabber.getTexture().unbind();
+      ofPopStyle();
     }
   
     // Recreate the mesh.
     if (shouldReset) {
       // Recreate the mesh and box2DSprings
-      setupMeshPlane();
-      createBox2DSprings();
+      createSubsectionBody();
       shouldReset = false;
     }
   
@@ -116,10 +114,6 @@ void ofApp::draw()
   }
 }
 
-void ofApp::meshRadiusUpdated(float &radius) {
-  // Update bounding box.
-  box2d.createBounds(ofRectangle(0, 0, ofGetWidth() + radius, ofGetHeight() + radius));
-}
 
 void ofApp::keyPressed(int key) {
     switch (key) {
@@ -145,139 +139,40 @@ void ofApp::keyPressed(int key) {
     }
 }
 
-// Use TRIANGLE mode to setup a mesh.
-void ofApp::setupMeshPlane() {
-  ofMesh mesh; // New mesh.
-  
-  mesh.clear();
-  mesh.setMode(OF_PRIMITIVE_TRIANGLES);
-  
-  // Create a mesh for the grabber.
-  int nCols = meshColumns;
-  int nRows = meshRows;
-  
-  // Width, height for mapping the correct texture coordinate.
-  int w = 50;
-  int h = 50;
-  
-  float meshOriginX = ofRandom(5, grabber.getWidth() - 100);
-  float meshOriginY = ofRandom(5, grabber.getHeight() - 100);
-  
-  // Subsection origin.
-  glm::vec2 meshOrigin = glm::vec2(meshOriginX, meshOriginY);
-  tornSubsections.push_back(meshOrigin);
-  
-  // Create the mesh.
-  for (int y = 0; y < nRows; y++) {
-    for (int x = 0; x < nCols; x++) {
-      float ix = w * x / (nCols - 1) + meshOriginX;
-      float iy = h * y / (nRows - 1) + meshOriginY;
-      mesh.addVertex({ix, iy, 0});
-      mesh.addTexCoord(glm::vec2(ix, iy));
+void ofApp::createImageSubsections() {
+  // Build a collection of image subsections.
+  for (int x = meshVertexRadius; x < grabber.getWidth() - meshVertexRadius; x=x+40) {
+    for (int y = meshVertexRadius; y < grabber.getHeight() - meshVertexRadius; y=y+40) {
+        Subsection s = Subsection(glm::vec2(x, y)); // Default subsection.
+        imageSubsections.push_back(s);
     }
   }
-  
-  // We don't draw the last row / col (nRows - 1 and nCols - 1) because it was
-  // taken care of by the row above and column to the left.
-  for (int y = 0; y < nRows - 1; y++)
-  {
-      for (int x = 0; x < nCols - 1; x++)
-      {
-          // Draw T0
-          // P0
-          mesh.addIndex((y + 0) * nCols + (x + 0));
-          // P1
-          mesh.addIndex((y + 0) * nCols + (x + 1));
-          // P2
-          mesh.addIndex((y + 1) * nCols + (x + 0));
-
-          // Draw T1
-          // P1
-          mesh.addIndex((y + 0) * nCols + (x + 1));
-          // P3
-          mesh.addIndex((y + 1) * nCols + (x + 1));
-          // P2
-          mesh.addIndex((y + 1) * nCols + (x + 0));
-      }
-  }
-  
-  // Add to the meshes. 
-  meshes.push_back(mesh);
 }
 
-void ofApp::createBox2DSprings() {
-  // For each mesh, create a soft body.
-  ofMesh newMesh = meshes.back(); // Get the mesh at last.
-  
-    auto meshVertices = newMesh.getVertices();
-    
-    SoftBody body;
-  
-    // Clear them to make them again.
-    body.vertices.clear();
-    body.joints.clear();
-    
-    // We must have the latest value of meshPoints right now.
-    // We want to make sure we create a mesh before creating Box2D springs.
-    
-    // Create mesh vertices as Box2D elements.
-    for (int i = 0; i < meshVertices.size(); i++) {
-      auto vertex = std::make_shared<ofxBox2dCircle>();
-      vertex -> setPhysics(vertexBounce, vertexDensity, vertexFriction); // bounce, density, friction
-      vertex -> setup(box2d.getWorld(), meshVertices[i].x, meshVertices[i].y, meshVertexRadius);
-      body.vertices.push_back(vertex);
-    }
-    
-    // Create Box2d joints for the mesh.
-    int meshWidth = grabber.getWidth();
-    int meshHeight = grabber.getHeight();
-    for (int y = 0; y < meshRows; y++) {
-      for (int x = 0; x < meshColumns; x++) {
-        int idx = x + y * meshColumns;
-        
-        // Do this for all columns except last column.
-        // NOTE: Connect current vertex with the next vertex in the same row.
-        if (x != meshColumns - 1) {
-          auto joint = std::make_shared<ofxBox2dJoint>();
-          int rightIdx = idx + 1;
-          joint -> setup(box2d.getWorld(), body.vertices[idx] -> body, body.vertices[rightIdx] -> body, jointFrequency, jointDamping);
-          body.joints.push_back(joint);
-        }
-        
-        
-        // Do this for each row except the last row. There is no further joint to
-        // be made there.
-        if (y != meshRows - 1) {
-          auto joint = std::make_shared<ofxBox2dJoint>();
-          int downIdx = x + (y + 1) * meshColumns;
-          joint -> setup(box2d.getWorld(), body.vertices[idx] -> body, body.vertices[downIdx] -> body, jointFrequency, jointDamping);
-          body.joints.push_back(joint);
-        }
-      }
-    }
-    
-    // Push this newly created soft body
-    softBodies.push_back(body);
+void ofApp::meshRadiusUpdated(float &radius) {
+  // Update bounding box.
+  box2d.createBounds(ofRectangle(0, 0, ofGetWidth() + radius, ofGetHeight() + radius));
 }
 
-void ofApp::updateMeshPlane() {
-  // Update each point on the mesh according to the
-  // box2D vertex.
-  for (int i = 0; i < meshes.size(); i++) {
-    auto meshPoints = meshes[i].getVertices();
-    
-    for (int j = 0; j < meshPoints.size(); j++) {
-      // Get the box2D vertex position.
-      glm::vec2 pos = softBodies[i].vertices[j] -> getPosition();
-      
-      // Update mesh point's position with the position of
-      // the box2d vertex.
-      auto meshPoint = meshPoints[j];
-      meshPoint.x = pos.x;
-      meshPoint.y = pos.y;
-      meshes[i].setVertex(j, meshPoint);
-    }
-  }
+void ofApp::createSubsectionBody() {
+  SubsectionBody body;
+  ofPoint meshDimensions = ofPoint(meshRows, meshColumns);
+  Subsection &s = imageSubsections[ofRandom(imageSubsections.size())];
+  ofPoint vertexPhysics = ofPoint(vertexBounce, vertexDensity, vertexFriction);
+  ofPoint jointPhysics = ofPoint(jointFrequency, jointDamping);
+  body.setup(box2d, meshDimensions, s.origin, meshVertexRadius, vertexPhysics, jointPhysics);
+  
+  // NOTE: Make the sure the filter index is correctly transferred from
+  // subsection to subsection body.
+  body.filterIdx = s.filterIdx; // Old filter index that this soft body should bind to.
+  s.filterIdx = s.filterIdx + 1; // Increment the filter index as this has been torn now.
+  
+  // Push this new subsection body to our collection.
+  softBodies.push_back(body);
+  
+  // Create new torn subsection and push it to the collection. 
+  Subsection sub = Subsection(s.origin, s.filterIdx);
+  tornSubsections.push_back(sub);
 }
 
 void ofApp::exit() {

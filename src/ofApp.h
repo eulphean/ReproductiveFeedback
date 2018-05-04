@@ -1,13 +1,9 @@
 #pragma once
 #include "ofMain.h"
 #include "ofxBox2d.h"
+#include "Subsection.h"
+#include "SubsectionBody.h"
 #include "ofxGui.h"
-
-class SoftBody {
-  public:
-    std::vector<std::shared_ptr<ofxBox2dCircle>> vertices; // Every vertex in the mesh is a circle.
-    std::vector<std::shared_ptr<ofxBox2dJoint>> joints; // Joints connecting those vertices.
-};
 
 class ofApp: public ofBaseApp
 {
@@ -19,10 +15,9 @@ public:
     void exit() override;
   
     // Mesh helper methods.
-    void createBox2DSprings();
-    void setupMeshPlane();
-    void updateMeshPlane();
-    void meshRadiusUpdated(float &radius); // Callback function for mesh radius update. 
+    void createImageSubsections();
+    void meshRadiusUpdated(float &radius); // Callback function for mesh radius update.
+    void createSubsectionBody();
   
     // Grabber stuff.
     ofVideoGrabber grabber;
@@ -42,11 +37,10 @@ public:
     ofxIntSlider meshColumns;
     ofxIntSlider meshRows;
   
-    // Collection of softbodies
-    vector<SoftBody> softBodies;
-  
-    // Torn subsections
-    vector<glm::vec2> tornSubsections;
+    // Subsections
+    vector<Subsection> imageSubsections; // Pool of original subsections.
+    vector<Subsection> tornSubsections; // Subsections removed. To be redrawn. 
+    vector<SubsectionBody> softBodies; // Mesh + Box2D body removed.
   
     // Physics.
     ofxFloatSlider vertexDensity;
