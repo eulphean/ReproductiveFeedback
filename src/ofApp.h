@@ -17,7 +17,9 @@ public:
     // Mesh helper methods.
     void createImageSubsections();
     void meshRadiusUpdated(float &radius); // Callback function for mesh radius update.
+    void subsectionSizeUpdated(int &num); // Recreate image subsections with new width or height.
     void createSubsectionBody();
+    void createSubsectionProperties();
   
     // Grabber stuff.
     ofVideoGrabber grabber;
@@ -27,20 +29,23 @@ public:
     ofxBox2d box2d;
   
     // Checks to keep track of updated box2d object.
-    bool shouldReset;
+    bool newSubsection;
     bool showSoftBody;
     bool hideGui;
-
-    // App GUI.
-    ofxPanel gui;
-    ofxFloatSlider meshVertexRadius;
-    ofxIntSlider meshColumns;
-    ofxIntSlider meshRows;
+    bool clear;
   
     // Subsections
     vector<Subsection> imageSubsections; // Pool of original subsections.
     vector<Subsection> tornSubsections; // Subsections removed. To be redrawn. 
     vector<SubsectionBody> softBodies; // Mesh + Box2D body removed.
+  
+    // App GUI.
+    ofxPanel gui;
+    ofxFloatSlider meshVertexRadius;
+    ofxIntSlider meshColumns;
+    ofxIntSlider meshRows;
+    ofxIntSlider subsectionWidth;
+    ofxIntSlider subsectionHeight;
   
     // Physics.
     ofxFloatSlider vertexDensity;
@@ -48,5 +53,8 @@ public:
     ofxFloatSlider vertexFriction;
     ofxFloatSlider jointFrequency;
     ofxFloatSlider jointDamping;
+  
+    // Soft body UI properties. 
+    SoftBodyProperties softBodyProperties;
 };
 

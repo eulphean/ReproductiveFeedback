@@ -1,11 +1,13 @@
 <?xml version="1.0"?>
 <group>
-	<Mesh_vertex_radius>1</Mesh_vertex_radius>
-	<Mesh_columns>4</Mesh_columns>
-	<Mesh_rows>4</Mesh_rows>
+	<Mesh_vertex_radius>7.95037</Mesh_vertex_radius>
+	<Mesh_columns>5</Mesh_columns>
+	<Mesh_rows>5</Mesh_rows>
 	<Vertex_density>0.07</Vertex_density>
-	<Vertex_bounce>0.09</Vertex_bounce>
-	<Vertex_friction>0.03</Vertex_friction>
-	<Joint_frequency>0</Joint_frequency>
+	<Vertex_bounce>0.192461</Vertex_bounce>
+	<Vertex_friction>0.0774609</Vertex_friction>
+	<Joint_frequency>1.34922</Joint_frequency>
 	<Joint_damping>0</Joint_damping>
+	<Subsection_width>100</Subsection_width>
+	<Subsection_height>100</Subsection_height>
 </group>

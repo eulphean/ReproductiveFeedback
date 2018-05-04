@@ -11,13 +11,16 @@ void ofApp::setup()
     box2d.registerGrabbing(); // Enable grabbing the circles.
   
     // Default values.
-    shouldReset = false;
+    newSubsection = false;
     showSoftBody = false;
     hideGui = false;
+    clear = false;
   
     // Setup GUI.
     gui.setup();
     gui.add(meshVertexRadius.setup("Mesh vertex radius", 5, 1, 30));
+    gui.add(subsectionWidth.setup("Subsection width", 50, 10, 500));
+    gui.add(subsectionHeight.setup("Subsection height", 50, 10, 500));
     gui.add(meshColumns.setup("Mesh columns", 20, 1, 100));
     gui.add(meshRows.setup("Mesh rows", 20, 1, 100));
     gui.add(vertexDensity.setup("Vertex density", 0.5, 0, 1));
@@ -26,6 +29,8 @@ void ofApp::setup()
     gui.add(jointFrequency.setup("Joint frequency", 4.f, 0.f, 20.f ));
     gui.add(jointDamping.setup("Joint damping", 1.f, 0.f, 5.f));
     meshVertexRadius.addListener(this, &ofApp::meshRadiusUpdated);
+    subsectionWidth.addListener(this, &ofApp::subsectionSizeUpdated);
+    subsectionHeight.addListener(this, &ofApp::subsectionSizeUpdated);
   
     gui.loadFromFile("ReproductiveFeedback.xml");
   
@@ -35,6 +40,9 @@ void ofApp::setup()
     int height = ofGetHeight();
     int width = ofGetWidth();
     grabber.setup(width, height);
+    
+    // Create subsection properties.
+    createSubsectionProperties();
   
     // Create all the subsections of the image.
     createImageSubsections();
@@ -45,6 +53,9 @@ void ofApp::setup()
 
 void ofApp::update()
 {
+    // Update subsection properties every time.
+    createSubsectionProperties();
+  
     // Update grabber.
     grabber.update();
   
@@ -81,8 +92,9 @@ void ofApp::draw()
           if (s.filterIdx == 3) {
             ofSetColor(ofColor::blue);
           }
-
-          grabber.getTexture().drawSubsection(s.origin.x, s.origin.y, 40, 40, s.origin.x, s.origin.y);
+        
+          ofTexture tex = grabber.getTexture();
+          tex.drawSubsection(s.origin.x, s.origin.y, subsectionWidth, subsectionHeight, s.origin.x, s.origin.y);
         ofPopStyle();
       }
     }
@@ -94,6 +106,10 @@ void ofApp::draw()
         ofSetColor(ofColor::red);
       }
       
+      if (b.filterIdx == 3) {
+        ofSetColor(ofColor::red);
+      }
+      
       grabber.getTexture().bind();
       b.draw(showSoftBody);
       grabber.getTexture().unbind();
@@ -101,10 +117,18 @@ void ofApp::draw()
     }
   
     // Recreate the mesh.
-    if (shouldReset) {
+    if (newSubsection) {
       // Recreate the mesh and box2DSprings
       createSubsectionBody();
-      shouldReset = false;
+      newSubsection = false;
+    }
+  
+    // Clear everything, recreate subsections, recreate soft bodies.
+    if (clear) {
+      createImageSubsections();
+      softBodies.clear();
+      tornSubsections.clear();
+      clear = false;
     }
   
   ofPopMatrix();
@@ -117,9 +141,8 @@ void ofApp::draw()
 
 void ofApp::keyPressed(int key) {
     switch (key) {
-      // ASCII for 'r' - Enable reset
-      case 'r': {
-        shouldReset = true;
+      case 'n': {
+        newSubsection = !newSubsection;
         break;
       }
       
@@ -133,18 +156,40 @@ void ofApp::keyPressed(int key) {
         break;
       }
       
+      case 'c': {
+        clear = !clear;
+        break;
+      }
+      
       default: {
         break;
       }
     }
 }
 
+// Recreate image subsections.
+void ofApp::subsectionSizeUpdated(int &num) {
+  createImageSubsections();
+}
+
+void ofApp::createSubsectionProperties() {
+  // Create Soft Body payload to create objects.
+  softBodyProperties.meshDimensions = ofPoint(meshRows, meshColumns);
+  softBodyProperties.vertexPhysics = ofPoint(vertexBounce, vertexDensity, vertexFriction); // x (bounce), y (density), z (friction)
+  softBodyProperties.jointPhysics = ofPoint(jointFrequency, jointDamping); // x (frequency), y (damping)
+  softBodyProperties.meshVertexRadius = meshVertexRadius;
+  softBodyProperties.subsectionSize = ofPoint(subsectionWidth, subsectionHeight); // x (width), y(height)
+}
+
 void ofApp::createImageSubsections() {
+  // Clear previous subsections.
+  imageSubsections.clear();
+  
   // Build a collection of image subsections.
-  for (int x = meshVertexRadius; x < grabber.getWidth() - meshVertexRadius; x=x+40) {
-    for (int y = meshVertexRadius; y < grabber.getHeight() - meshVertexRadius; y=y+40) {
-        Subsection s = Subsection(glm::vec2(x, y)); // Default subsection.
-        imageSubsections.push_back(s);
+  for (int x = 0; x < grabber.getWidth(); x+=subsectionWidth) {
+    for (int y = 0; y < grabber.getHeight(); y+=subsectionHeight) {
+      Subsection s = Subsection(glm::vec2(x, y)); // Default subsection.
+      imageSubsections.push_back(s);
     }
   }
 }
@@ -156,11 +201,10 @@ void ofApp::meshRadiusUpdated(float &radius) {
 
 void ofApp::createSubsectionBody() {
   SubsectionBody body;
-  ofPoint meshDimensions = ofPoint(meshRows, meshColumns);
   Subsection &s = imageSubsections[ofRandom(imageSubsections.size())];
-  ofPoint vertexPhysics = ofPoint(vertexBounce, vertexDensity, vertexFriction);
-  ofPoint jointPhysics = ofPoint(jointFrequency, jointDamping);
-  body.setup(box2d, meshDimensions, s.origin, meshVertexRadius, vertexPhysics, jointPhysics);
+  
+  // Setup the body. 
+  body.setup(box2d, s.origin, softBodyProperties);
   
   // NOTE: Make the sure the filter index is correctly transferred from
   // subsection to subsection body.

@@ -1,13 +1,8 @@
 #include "SubsectionBody.h"
 
-void SubsectionBody::setup(ofxBox2d &box2d,
-                           ofPoint meshDimensions,
-                           glm::vec2 meshOrigin,
-                           float meshVertexRadius,
-                           ofPoint vertexPhysics,
-                           ofPoint jointPhysics) {
-  setupMeshPlane(meshDimensions, meshOrigin); // Create a mesh.
-  createBox2DSprings(box2d, meshDimensions, meshVertexRadius, vertexPhysics, jointPhysics); // Create box2d structure.
+void SubsectionBody::setup(ofxBox2d &box2d, glm::vec2 meshOrigin, SoftBodyProperties softBodyProperties) {
+  setupMeshPlane(meshOrigin, softBodyProperties); // Create a mesh.
+  createBox2DSprings(box2d, softBodyProperties); // Create box2d structure.
 }
 
 void SubsectionBody::update() {
@@ -50,26 +45,23 @@ void SubsectionBody::draw(bool showSoftBody) {
 }
 
 // Use TRIANGLE mode to setup a mesh.
-void SubsectionBody::setupMeshPlane(ofPoint meshDimensions, glm::vec2 meshOrigin) {
+void SubsectionBody::setupMeshPlane(glm::vec2 meshOrigin, SoftBodyProperties softBodyProperties) {
   mesh.clear();
   mesh.setMode(OF_PRIMITIVE_TRIANGLES);
   
   // Create a mesh for the grabber.
-  int nRows = meshDimensions.x;
-  int nCols = meshDimensions.y;
+  int nRows = softBodyProperties.meshDimensions.x;
+  int nCols = softBodyProperties.meshDimensions.y;
   
   // Width, height for mapping the correct texture coordinate.
-  int w = 40;
-  int h = 40;
-  
-  // Subsection origin.
-  // tornSubsections.push_back(meshOrigin);
+  int w = softBodyProperties.subsectionSize.x;
+  int h = softBodyProperties.subsectionSize.y;
   
   // Create the mesh.
   for (int y = 0; y < nRows; y++) {
     for (int x = 0; x < nCols; x++) {
-      float ix = w * x / (nCols - 1) + meshOrigin.x;
-      float iy = h * y / (nRows - 1) + meshOrigin.y;
+      float ix = meshOrigin.x + w * x / (nCols - 1);
+      float iy = meshOrigin.y + h * y / (nRows - 1);
       mesh.addVertex({ix, iy, 0});
       mesh.addTexCoord(glm::vec2(ix, iy));
     }
@@ -100,29 +92,22 @@ void SubsectionBody::setupMeshPlane(ofPoint meshDimensions, glm::vec2 meshOrigin
   }
 }
 
-void SubsectionBody::createBox2DSprings(ofxBox2d &box2d,
-                                        ofPoint meshDimensions,
-                                        float meshVertexRadius,
-                                        ofPoint vertexPhysics,
-                                        ofPoint jointPhysics) {
+void SubsectionBody::createBox2DSprings(ofxBox2d &box2d, SoftBodyProperties softBodyProperties) {
   auto meshVertices = mesh.getVertices();
   
   vertices.clear();
   joints.clear();
 
-  // We must have the latest value of meshPoints right now.
-  // We want to make sure we create a mesh before creating Box2D springs.
-
   // Create mesh vertices as Box2D elements.
   for (int i = 0; i < meshVertices.size(); i++) {
     auto vertex = std::make_shared<ofxBox2dCircle>();
-    vertex -> setPhysics(vertexPhysics.x, vertexPhysics.y, vertexPhysics.z); // bounce, density, friction
-    vertex -> setup(box2d.getWorld(), meshVertices[i].x, meshVertices[i].y, meshVertexRadius);
+    vertex -> setPhysics(softBodyProperties.vertexPhysics.x, softBodyProperties.vertexPhysics.y, softBodyProperties.vertexPhysics.z); // bounce, density, friction
+    vertex -> setup(box2d.getWorld(), meshVertices[i].x, meshVertices[i].y, softBodyProperties.meshVertexRadius);
     vertices.push_back(vertex);
   }
   
-  int meshRows = meshDimensions.x;
-  int meshColumns = meshDimensions.y;
+  int meshRows = softBodyProperties.meshDimensions.x;
+  int meshColumns = softBodyProperties.meshDimensions.y;
   
   // Create Box2d joints for the mesh.
   for (int y = 0; y < meshRows; y++) {
@@ -134,7 +119,7 @@ void SubsectionBody::createBox2DSprings(ofxBox2d &box2d,
       if (x != meshColumns - 1) {
         auto joint = std::make_shared<ofxBox2dJoint>();
         int rightIdx = idx + 1;
-        joint -> setup(box2d.getWorld(), vertices[idx] -> body, vertices[rightIdx] -> body, jointPhysics.x, jointPhysics.y); // frequency, damping
+        joint -> setup(box2d.getWorld(), vertices[idx] -> body, vertices[rightIdx] -> body, softBodyProperties.jointPhysics.x, softBodyProperties.jointPhysics.y); // frequency, damping
         joints.push_back(joint);
       }
       
@@ -144,7 +129,7 @@ void SubsectionBody::createBox2DSprings(ofxBox2d &box2d,
       if (y != meshRows - 1) {
         auto joint = std::make_shared<ofxBox2dJoint>();
         int downIdx = x + (y + 1) * meshColumns;
-        joint -> setup(box2d.getWorld(), vertices[idx] -> body, vertices[downIdx] -> body, jointPhysics.x, jointPhysics.y);
+        joint -> setup(box2d.getWorld(), vertices[idx] -> body, vertices[downIdx] -> body, softBodyProperties.jointPhysics.x, softBodyProperties.jointPhysics.y);
         joints.push_back(joint);
       }
     }
