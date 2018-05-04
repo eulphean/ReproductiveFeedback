@@ -15,7 +15,7 @@ struct SoftBodyProperties {
 class Subsection {
   public:
     // Constructor for subsection initiation.
-    Subsection(glm::vec2 pos, int idx = -1) {
+    Subsection(glm::vec2 pos, int idx = 0) {
       origin = pos;
       filterIdx = idx;
     }

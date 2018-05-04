@@ -83,8 +83,11 @@ void ofApp::draw()
   
     // Texture 1 (without any filter)
     ofPushStyle();
-      // Original grabber texture.
+      // Starting texture.
+      filters[0] -> begin();
       grabber.draw(0, 0, grabber.getWidth(), grabber.getHeight());
+      filters[0] -> end();
+  
     ofPopStyle();
   
     // Torn subsections.
@@ -102,15 +105,11 @@ void ofApp::draw()
     // Draw the soft body.
     for (auto b: softBodies) {
       ofPushStyle();
-        if (b.filterIdx > -1) {
-          filters[b.filterIdx] -> begin();
-        }
+        filters[b.filterIdx] -> begin();
         grabber.getTexture().bind();
         b.draw(showSoftBody);
         grabber.getTexture().unbind();
-        if (b.filterIdx > -1) {
-          filters[b.filterIdx] -> end();
-        }
+        filters[b.filterIdx] -> end();
       ofPopStyle();
     }
   
@@ -167,6 +166,14 @@ void ofApp::keyPressed(int key) {
 
 void ofApp::populateFilters() {
   filters.push_back(new SketchFilter(grabber.getWidth(), grabber.getHeight()));
+  FilterChain * watercolorChain = new FilterChain(grabber.getWidth(), grabber.getHeight(), "Monet");
+    watercolorChain->addFilter(new KuwaharaFilter(9));
+    watercolorChain->addFilter(new LookupFilter(grabber.getWidth(), grabber.getHeight(), "img/lookup_miss_etikate.png"));
+    watercolorChain->addFilter(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
+    watercolorChain->addFilter(new PoissonBlendFilter("img/canvas_texture.jpg", grabber.getWidth(), grabber.getHeight(), 2.0));
+    watercolorChain->addFilter(new VignetteFilter());
+  
+  filters.push_back(watercolorChain);
   filters.push_back(new PerlinPixellationFilter(grabber.getWidth(), grabber.getHeight()));
   filters.push_back(new SobelEdgeDetectionFilter(grabber.getWidth(), grabber.getHeight()));
   filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
@@ -220,9 +227,11 @@ void ofApp::createSubsectionBody() {
   // Push this new subsection body to our collection.
   softBodies.push_back(body);
   
+  std::cout<<"Soft bodies." << softBodies.size() << endl;
+  
   // Create new torn subsection and push it to the collection. 
-  Subsection sub = Subsection(s.origin, s.filterIdx);
-  tornSubsections.push_back(sub);
+  Subsection tornSub = Subsection(s.origin, s.filterIdx);
+  tornSubsections.push_back(tornSub);
 }
 
 void ofApp::exit() {

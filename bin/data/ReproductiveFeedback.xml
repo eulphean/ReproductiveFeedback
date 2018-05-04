@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <group>
-	<Mesh_vertex_radius>2</Mesh_vertex_radius>
+	<Mesh_vertex_radius>3.08947</Mesh_vertex_radius>
 	<Mesh_columns>5</Mesh_columns>
 	<Mesh_rows>5</Mesh_rows>
 	<Vertex_density>0.09325</Vertex_density>
@@ -8,6 +8,6 @@
 	<Vertex_friction>0.0774609</Vertex_friction>
 	<Joint_frequency>1.34922</Joint_frequency>
 	<Joint_damping>0</Joint_damping>
-	<Subsection_width>100</Subsection_width>
-	<Subsection_height>100</Subsection_height>
+	<Subsection_width>324</Subsection_width>
+	<Subsection_height>69</Subsection_height>
 </group>
