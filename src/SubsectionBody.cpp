@@ -63,10 +63,14 @@ void SubsectionBody::setupMeshPlane(glm::vec2 meshOrigin, SoftBodyProperties sof
       float ix = meshOrigin.x + w * x / (nCols - 1);
       float iy = meshOrigin.y + h * y / (nRows - 1);
       mesh.addVertex({ix, iy, 0});
-      mesh.addTexCoord(glm::vec2(ix, iy));
+      
+      // Since, we have ofDisableArbTex, we map the coordinates from 0 - 1. 
+      float texX = ofMap(ix, 0, softBodyProperties.textureDimensions.x, 0, 1, true); // Map the calculated x coordinate from 0 - 1
+      float texY = ofMap(iy, 0, softBodyProperties.textureDimensions.y, 0, 1, true); // Map the calculated y coordinate from 0 - 1
+      mesh.addTexCoord(glm::vec2(texX, texY));
     }
   }
-  
+
   // We don't draw the last row / col (nRows - 1 and nCols - 1) because it was
   // taken care of by the row above and column to the left.
   for (int y = 0; y < nRows - 1; y++)

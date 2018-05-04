@@ -1,9 +1,9 @@
 #pragma once
 #include "ofMain.h"
 #include "ofxBox2d.h"
-#include "Subsection.h"
 #include "SubsectionBody.h"
 #include "ofxGui.h"
+#include "ofxFilterLibrary.h"
 
 class ofApp: public ofBaseApp
 {
@@ -20,6 +20,7 @@ public:
     void subsectionSizeUpdated(int &num); // Recreate image subsections with new width or height.
     void createSubsectionBody();
     void createSubsectionProperties();
+    void populateFilters();
   
     // Grabber stuff.
     ofVideoGrabber grabber;
@@ -56,5 +57,8 @@ public:
   
     // Soft body UI properties. 
     SoftBodyProperties softBodyProperties;
+  
+    // Collection of filters. 
+    vector<AbstractFilter *> filters;
 };
 

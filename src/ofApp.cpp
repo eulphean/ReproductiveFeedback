@@ -3,6 +3,9 @@
 void ofApp::setup()
 {
     ofBackground(0);
+    ofDisableArbTex();
+    ofEnableSmoothing();
+    ofEnableAlphaBlending();
     
     // Setup box 2d.
     box2d.init();
@@ -40,6 +43,9 @@ void ofApp::setup()
     int height = ofGetHeight();
     int width = ofGetWidth();
     grabber.setup(width, height);
+  
+    // Collection of filters.
+    populateFilters();
     
     // Create subsection properties.
     createSubsectionProperties();
@@ -85,16 +91,10 @@ void ofApp::draw()
     if (tornSubsections.size() > 0) {
       for (auto s: tornSubsections) {
         ofPushStyle();
-          if (s.filterIdx == 2) {
-            ofSetColor(ofColor::red);
-          }
-        
-          if (s.filterIdx == 3) {
-            ofSetColor(ofColor::blue);
-          }
-        
+          filters[s.filterIdx] -> begin();
           ofTexture tex = grabber.getTexture();
           tex.drawSubsection(s.origin.x, s.origin.y, subsectionWidth, subsectionHeight, s.origin.x, s.origin.y);
+          filters[s.filterIdx] -> end();
         ofPopStyle();
       }
     }
@@ -102,17 +102,15 @@ void ofApp::draw()
     // Draw the soft body.
     for (auto b: softBodies) {
       ofPushStyle();
-      if (b.filterIdx == 2) {
-        ofSetColor(ofColor::red);
-      }
-      
-      if (b.filterIdx == 3) {
-        ofSetColor(ofColor::red);
-      }
-      
-      grabber.getTexture().bind();
-      b.draw(showSoftBody);
-      grabber.getTexture().unbind();
+        if (b.filterIdx > -1) {
+          filters[b.filterIdx] -> begin();
+        }
+        grabber.getTexture().bind();
+        b.draw(showSoftBody);
+        grabber.getTexture().unbind();
+        if (b.filterIdx > -1) {
+          filters[b.filterIdx] -> end();
+        }
       ofPopStyle();
     }
   
@@ -125,9 +123,9 @@ void ofApp::draw()
   
     // Clear everything, recreate subsections, recreate soft bodies.
     if (clear) {
-      createImageSubsections();
+      //createImageSubsections();
       softBodies.clear();
-      tornSubsections.clear();
+      //tornSubsections.clear();
       clear = false;
     }
   
@@ -167,6 +165,13 @@ void ofApp::keyPressed(int key) {
     }
 }
 
+void ofApp::populateFilters() {
+  filters.push_back(new SketchFilter(grabber.getWidth(), grabber.getHeight()));
+  filters.push_back(new PerlinPixellationFilter(grabber.getWidth(), grabber.getHeight()));
+  filters.push_back(new SobelEdgeDetectionFilter(grabber.getWidth(), grabber.getHeight()));
+  filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
+}
+
 // Recreate image subsections.
 void ofApp::subsectionSizeUpdated(int &num) {
   createImageSubsections();
@@ -179,6 +184,7 @@ void ofApp::createSubsectionProperties() {
   softBodyProperties.jointPhysics = ofPoint(jointFrequency, jointDamping); // x (frequency), y (damping)
   softBodyProperties.meshVertexRadius = meshVertexRadius;
   softBodyProperties.subsectionSize = ofPoint(subsectionWidth, subsectionHeight); // x (width), y(height)
+  softBodyProperties.textureDimensions = ofPoint(grabber.getTexture().getWidth(), grabber.getTexture().getHeight());
 }
 
 void ofApp::createImageSubsections() {
@@ -209,7 +215,7 @@ void ofApp::createSubsectionBody() {
   // NOTE: Make the sure the filter index is correctly transferred from
   // subsection to subsection body.
   body.filterIdx = s.filterIdx; // Old filter index that this soft body should bind to.
-  s.filterIdx = s.filterIdx + 1; // Increment the filter index as this has been torn now.
+  s.filterIdx = (s.filterIdx + 1) % filters.size(); // Increment the filter index as this has been torn now.
   
   // Push this new subsection body to our collection.
   softBodies.push_back(body);
