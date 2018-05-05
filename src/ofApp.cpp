@@ -46,6 +46,10 @@ void ofApp::setup()
     // Setup grabber.
     int height = ofGetHeight();
     int width = ofGetWidth();
+    // If a webcame is attached, use that. 
+    if (grabber.listDevices().size() > 1) {
+      grabber.setDeviceID(1);
+    }
     grabber.setup(width, height);
   
     // Collection of filters.
@@ -83,6 +87,12 @@ void ofApp::update()
       if (softBodies[i].isOutside) { // Erase this element if it's outside the bounds.
         softBodies.erase(softBodies.begin() + i);
       }
+    }
+  
+    unsigned long elapsedTime = ofGetElapsedTimeMillis() - trackTime;
+    if (elapsedTime > 5 * 1000 && softBodies.size() <= 3) { // Every 5 seconds create a new one. No more than 3 soft bodies on the screen.
+      newSubsection = true;
+      trackTime = ofGetElapsedTimeMillis(); // Reset time.
     }
 }
 
@@ -136,12 +146,6 @@ void ofApp::draw()
         softBodies.clear();
         //tornSubsections.clear();
         clear = false;
-      }
-
-      unsigned long elapsedTime = ofGetElapsedTimeMillis() - trackTime;
-      if (elapsedTime > 5 * 1000) { // Every 3 seconds create a new one.
-        newSubsection = true;
-        trackTime = ofGetElapsedTimeMillis(); // Reset time.
       }
     ofPopMatrix();
   ofPopMatrix();
@@ -202,28 +206,23 @@ void ofApp::contactStart(ofxBox2dContactArgs& e) {
 }
 
 void ofApp::populateFilters() {
- 
+  Abstract3x3ConvolutionFilter * convolutionFilter2 = new Abstract3x3ConvolutionFilter(grabber.getWidth(), grabber.getHeight());
+    convolutionFilter2->setMatrix(4, 4, 4, 4, -32, 4, 4,  4, 4);
+  filters.push_back(convolutionFilter2);
+  filters.push_back(new SketchFilter(grabber.getWidth(), grabber.getHeight()));
   FilterChain * watercolorChain = new FilterChain(grabber.getWidth(), grabber.getHeight(), "Monet");
     watercolorChain->addFilter(new KuwaharaFilter(9));
     watercolorChain->addFilter(new LookupFilter(grabber.getWidth(), grabber.getHeight(), "img/lookup_miss_etikate.png"));
     watercolorChain->addFilter(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
     watercolorChain->addFilter(new PoissonBlendFilter("img/canvas_texture.jpg", grabber.getWidth(), grabber.getHeight(), 2.0));
     watercolorChain->addFilter(new VignetteFilter());
-  
   filters.push_back(watercolorChain);
-  
-   filters.push_back(new SketchFilter(grabber.getWidth(), grabber.getHeight()));
-  
-  
-  Abstract3x3ConvolutionFilter * convolutionFilter2 = new Abstract3x3ConvolutionFilter(grabber.getWidth(), grabber.getHeight());
-    convolutionFilter2->setMatrix(4, 4, 4, 4, -32, 4, 4,  4, 4);
-  filters.push_back(convolutionFilter2);
+  filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
   
   filters.push_back(new DisplacementFilter("img/glass/3.jpg", grabber.getWidth(), grabber.getHeight(), 40.0));
   
   filters.push_back(new PerlinPixellationFilter(grabber.getWidth(), grabber.getHeight()));
   filters.push_back(new SobelEdgeDetectionFilter(grabber.getWidth(), grabber.getHeight()));
-  filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
 }
 
 // Recreate image subsections.

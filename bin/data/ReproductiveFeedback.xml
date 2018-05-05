@@ -3,11 +3,11 @@
 	<Mesh_vertex_radius>2</Mesh_vertex_radius>
 	<Mesh_columns>5</Mesh_columns>
 	<Mesh_rows>5</Mesh_rows>
-	<Vertex_density>0.1</Vertex_density>
+	<Vertex_density>0.3</Vertex_density>
 	<Vertex_bounce>0.0811523</Vertex_bounce>
 	<Vertex_friction>0.0661523</Vertex_friction>
 	<Joint_frequency>2.82305</Joint_frequency>
 	<Joint_damping>1.55986</Joint_damping>
-	<Subsection_width>50</Subsection_width>
-	<Subsection_height>103</Subsection_height>
+	<Subsection_width>100</Subsection_width>
+	<Subsection_height>100</Subsection_height>
 </group>
