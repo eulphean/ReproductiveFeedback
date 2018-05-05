@@ -21,6 +21,8 @@ public:
     void createSubsectionBody();
     void createSubsectionProperties();
     void populateFilters();
+    void contactStart(ofxBox2dContactArgs& e);
+    void createCustomBounds();
   
     // Grabber stuff.
     ofVideoGrabber grabber;
@@ -60,5 +62,7 @@ public:
   
     // Collection of filters. 
     vector<AbstractFilter *> filters;
+  
+    unsigned long trackTime; 
 };
 

@@ -25,8 +25,6 @@ void SubsectionBody::update() {
 }
 
 void SubsectionBody::draw(bool showSoftBody) {
-  // Draw the meshes.
-  mesh.draw();
   // Draw the soft bodies.
   if (showSoftBody) {
     ofPushStyle();
@@ -41,9 +39,10 @@ void SubsectionBody::draw(bool showSoftBody) {
         j->draw();
       }
     ofPopStyle();
-  } else {
-
   }
+  
+  // Draw the meshes.
+  mesh.draw();
 }
 
 // Use TRIANGLE mode to setup a mesh.
@@ -143,10 +142,10 @@ void SubsectionBody::createBox2DSprings(ofxBox2d &box2d, SoftBodyProperties soft
 }
 
 void SubsectionBody::addForce() {
-  int increment = 5;
+  int increment = 3;
   for (int i = 0; i < vertices.size(); i+=increment) {
     auto v = vertices[i];
     auto pos = v -> getPosition();
-    v -> addForce(glm::vec2(ofRandom(-2, 2), ofRandom(-2, 2)), 2);
+    v -> addForce(glm::vec2(ofRandom(-3, 3), ofRandom(-3, 3)), 1);
   }
 }

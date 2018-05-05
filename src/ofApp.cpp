@@ -6,11 +6,12 @@ void ofApp::setup()
     ofDisableArbTex();
     ofEnableSmoothing();
     ofEnableAlphaBlending();
-    
+  
     // Setup box 2d.
     box2d.init();
-    box2d.setGravity(0, 1);
+    box2d.setGravity(0, 1.5);
     box2d.setFPS(100);
+    box2d.enableEvents();
     box2d.registerGrabbing(); // Enable grabbing the circles.
   
     // Default values.
@@ -37,7 +38,9 @@ void ofApp::setup()
   
     gui.loadFromFile("ReproductiveFeedback.xml");
   
-    box2d.createBounds(ofRectangle(0, 0, ofGetWidth() + meshVertexRadius, ofGetHeight() + meshVertexRadius));
+    createCustomBounds();
+  
+    //box2d.createBounds(ofRectangle(0, 0, ofGetWidth() + meshVertexRadius, ofGetHeight() + meshVertexRadius));
   
     // Setup grabber.
     int height = ofGetHeight();
@@ -55,6 +58,9 @@ void ofApp::setup()
 
     // Setup a mesh and box2d body for an image subsection.
     createSubsectionBody();
+  
+    // Add a listener for when the contact happens.
+    ofAddListener(box2d.contactEndEvents, this, &ofApp::contactStart);
 }
 
 void ofApp::update()
@@ -77,57 +83,61 @@ void ofApp::update()
 void ofApp::draw()
 {
   ofPushMatrix();
-    // Translation to rotate the image.
-    ofTranslate(grabber.getWidth(), 0);
-    ofScale(-1, 1, 1);
-  
-    // Texture 1 (without any filter)
-    ofPushStyle();
-      // Starting texture.
-      filters[0] -> begin();
-      grabber.draw(0, 0, grabber.getWidth(), grabber.getHeight());
-      filters[0] -> end();
-  
-    ofPopStyle();
-  
-    // Torn subsections.
-    if (tornSubsections.size() > 0) {
-      for (auto s: tornSubsections) {
+    ofPushMatrix();
+      // Translation to rotate the image.
+      ofTranslate(grabber.getWidth(), 0);
+      ofScale(-1, 1, 1);
+      // Base texture. This is where we start.
+      ofPushStyle();
+        filters[0] -> begin();
+        grabber.draw(0, 0, grabber.getWidth(), grabber.getHeight());
+        filters[0] -> end();
+      ofPopStyle();
+
+      // Torn subsections.
+      if (tornSubsections.size() > 0) {
+        for (auto s: tornSubsections) {
+          ofPushStyle();
+            filters[s.filterIdx] -> begin();
+            ofTexture tex = grabber.getTexture();
+            tex.drawSubsection(s.origin.x, s.origin.y, subsectionWidth, subsectionHeight, s.origin.x, s.origin.y);
+            filters[s.filterIdx] -> end();
+          ofPopStyle();
+        }
+      }
+
+      // Soft body.
+      for (auto b: softBodies) {
         ofPushStyle();
-          filters[s.filterIdx] -> begin();
-          ofTexture tex = grabber.getTexture();
-          tex.drawSubsection(s.origin.x, s.origin.y, subsectionWidth, subsectionHeight, s.origin.x, s.origin.y);
-          filters[s.filterIdx] -> end();
+          filters[b.filterIdx] -> begin();
+          grabber.getTexture().bind();
+          b.draw(showSoftBody);
+          grabber.getTexture().unbind();
+          filters[b.filterIdx] -> end();
         ofPopStyle();
       }
-    }
-  
-    // Draw the soft body.
-    for (auto b: softBodies) {
-      ofPushStyle();
-        filters[b.filterIdx] -> begin();
-        grabber.getTexture().bind();
-        b.draw(showSoftBody);
-        grabber.getTexture().unbind();
-        filters[b.filterIdx] -> end();
-      ofPopStyle();
-    }
-  
-    // Recreate the mesh.
-    if (newSubsection) {
-      // Recreate the mesh and box2DSprings
-      createSubsectionBody();
-      newSubsection = false;
-    }
-  
-    // Clear everything, recreate subsections, recreate soft bodies.
-    if (clear) {
-      //createImageSubsections();
-      softBodies.clear();
-      //tornSubsections.clear();
-      clear = false;
-    }
-  
+
+      // Recreate the mesh.
+      if (newSubsection) {
+        // Recreate the mesh and box2DSprings
+        createSubsectionBody();
+        newSubsection = false;
+      }
+
+      // Clear everything, recreate subsections, recreate soft bodies.
+      if (clear) {
+        //createImageSubsections();
+        softBodies.clear();
+        //tornSubsections.clear();
+        clear = false;
+      }
+
+      unsigned long elapsedTime = ofGetElapsedTimeMillis() - trackTime;
+      if (elapsedTime > 5 * 1000) { // Every 3 seconds create a new one.
+        newSubsection = true;
+        trackTime = ofGetElapsedTimeMillis(); // Reset time.
+      }
+    ofPopMatrix();
   ofPopMatrix();
   
   if (!hideGui) {
@@ -164,8 +174,29 @@ void ofApp::keyPressed(int key) {
     }
 }
 
+void ofApp::createCustomBounds() {
+  // Get a handle to the ground.
+  auto &ground = box2d.ground;
+  
+  b2EdgeShape shape;
+  
+  ofRectangle rec(0/OFX_BOX2D_SCALE, 0/OFX_BOX2D_SCALE, ofGetWidth()/OFX_BOX2D_SCALE, ofGetHeight()/OFX_BOX2D_SCALE);
+  
+  //right wall
+  shape.Set(b2Vec2(rec.x+rec.width, rec.y), b2Vec2(rec.x+rec.width, rec.y+rec.height));
+  ground->CreateFixture(&shape, 0.0f);
+  
+  //left wall
+  shape.Set(b2Vec2(rec.x, rec.y), b2Vec2(rec.x, rec.y+rec.height));
+  ground->CreateFixture(&shape, 0.0f);
+}
+
+void ofApp::contactStart(ofxBox2dContactArgs& e) {
+//  std::cout << "Contact happened. " << e.a << ", " << e.b << endl;
+}
+
 void ofApp::populateFilters() {
-  filters.push_back(new SketchFilter(grabber.getWidth(), grabber.getHeight()));
+ 
   FilterChain * watercolorChain = new FilterChain(grabber.getWidth(), grabber.getHeight(), "Monet");
     watercolorChain->addFilter(new KuwaharaFilter(9));
     watercolorChain->addFilter(new LookupFilter(grabber.getWidth(), grabber.getHeight(), "img/lookup_miss_etikate.png"));
@@ -175,9 +206,12 @@ void ofApp::populateFilters() {
   
   filters.push_back(watercolorChain);
   
-  Abstract3x3ConvolutionFilter * convolutionFilter1 = new Abstract3x3ConvolutionFilter(grabber.getWidth(), grabber.getHeight());
-  convolutionFilter1->setMatrix(-1, 0, 1, -2, 0, 2, -1, 0, 1);
-  filters.push_back(convolutionFilter1);
+   filters.push_back(new SketchFilter(grabber.getWidth(), grabber.getHeight()));
+  
+  
+  Abstract3x3ConvolutionFilter * convolutionFilter2 = new Abstract3x3ConvolutionFilter(grabber.getWidth(), grabber.getHeight());
+    convolutionFilter2->setMatrix(4, 4, 4, 4, -32, 4, 4,  4, 4);
+  filters.push_back(convolutionFilter2);
   
   filters.push_back(new DisplacementFilter("img/glass/3.jpg", grabber.getWidth(), grabber.getHeight(), 40.0));
   
@@ -206,8 +240,8 @@ void ofApp::createImageSubsections() {
   imageSubsections.clear();
   
   // Build a collection of image subsections.
-  for (int x = 0; x < grabber.getWidth(); x+=subsectionWidth) {
-    for (int y = 0; y < grabber.getHeight(); y+=subsectionHeight) {
+  for (int x = meshVertexRadius; x < grabber.getWidth() - meshVertexRadius; x+=subsectionWidth) {
+    for (int y = meshVertexRadius; y < grabber.getHeight() - meshVertexRadius; y+=subsectionHeight) {
       Subsection s = Subsection(glm::vec2(x, y)); // Default subsection.
       imageSubsections.push_back(s);
     }
@@ -241,10 +275,11 @@ void ofApp::createSubsectionBody() {
   
   std::cout << softBodies.size();
   
-  
   // Create new torn subsection and push it to the collection. 
   Subsection tornSub = Subsection(s.origin, s.filterIdx);
   tornSubsections.push_back(tornSub);
+  
+  trackTime = ofGetElapsedTimeMillis();
 }
 
 void ofApp::exit() {
