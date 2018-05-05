@@ -22,7 +22,7 @@ public:
     void createSubsectionProperties();
     void populateFilters();
     void contactStart(ofxBox2dContactArgs& e);
-    void createCustomBounds();
+    void createCustomWalls();
   
     // Grabber stuff.
     ofVideoGrabber grabber;

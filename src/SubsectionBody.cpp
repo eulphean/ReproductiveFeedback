@@ -22,6 +22,20 @@ void SubsectionBody::update() {
     meshPoint.y = pos.y;
     mesh.setVertex(j, meshPoint);
   }
+  
+  // Check if these are in bound.
+  isOutside = true;
+  for (auto &v : vertices) {
+    auto boundingRect = ofRectangle(0, 0, ofGetWidth(), ofGetHeight());
+    isOutside = isOutside && !boundingRect.inside(v -> getPosition());
+  }
+  
+  if (isOutside == true) {
+    // Remove all the vertices.
+    ofRemove(vertices, [&](std::shared_ptr<ofxBox2dCircle> circle) {
+      return true;
+    });
+  }
 }
 
 void SubsectionBody::draw(bool showSoftBody) {
@@ -146,6 +160,6 @@ void SubsectionBody::addForce() {
   for (int i = 0; i < vertices.size(); i+=increment) {
     auto v = vertices[i];
     auto pos = v -> getPosition();
-    v -> addForce(glm::vec2(ofRandom(-3, 3), ofRandom(-3, 3)), 1);
+    v -> addForce(glm::vec2(ofRandom(-2, 2), ofRandom(-2, 2)), 0.5);
   }
 }

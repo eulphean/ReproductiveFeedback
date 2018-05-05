@@ -34,6 +34,7 @@ class SubsectionBody {
   
     // Filter index to define which texture the subsection body should bind to.
     int filterIdx = 1;
+    bool isOutside; // Set this to true if all the vertices of this soft body are removed. 
   
   private:
     void setupMeshPlane(glm::vec2 meshOrigin, SoftBodyProperties softBodyProperties);

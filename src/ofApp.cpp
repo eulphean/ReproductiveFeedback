@@ -38,7 +38,8 @@ void ofApp::setup()
   
     gui.loadFromFile("ReproductiveFeedback.xml");
   
-    createCustomBounds();
+    // Custom walls for this program.
+    createCustomWalls();
   
     //box2d.createBounds(ofRectangle(0, 0, ofGetWidth() + meshVertexRadius, ofGetHeight() + meshVertexRadius));
   
@@ -75,8 +76,13 @@ void ofApp::update()
     box2d.update();
   
     // Update all soft bodies.
-    for (auto &s : softBodies) {
-      s.update();
+    // Also, remove them if they go outside
+    // the bounds of the screen.
+    for (int i = 0; i < softBodies.size(); i++) {
+      softBodies[i].update();
+      if (softBodies[i].isOutside) { // Erase this element if it's outside the bounds.
+        softBodies.erase(softBodies.begin() + i);
+      }
     }
 }
 
@@ -174,7 +180,7 @@ void ofApp::keyPressed(int key) {
     }
 }
 
-void ofApp::createCustomBounds() {
+void ofApp::createCustomWalls() {
   // Get a handle to the ground.
   auto &ground = box2d.ground;
   
@@ -267,11 +273,6 @@ void ofApp::createSubsectionBody() {
   
   // Push this new subsection body to our collection.
   softBodies.push_back(body);
-  
-  // Clear half of the meshes.
-  if (softBodies.size() > 6) {
-    softBodies.erase(softBodies.begin(), softBodies.begin() + softBodies.size() / 2);
-  }
   
   std::cout << softBodies.size();
   
