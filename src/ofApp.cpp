@@ -273,7 +273,7 @@ void ofApp::createSubsectionBody() {
   // Push this new subsection body to our collection.
   softBodies.push_back(body);
   
-  std::cout << softBodies.size();
+  std::cout << softBodies.size() << endl;
   
   // Create new torn subsection and push it to the collection. 
   Subsection tornSub = Subsection(s.origin, s.filterIdx);
