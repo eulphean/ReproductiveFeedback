@@ -9,7 +9,7 @@ void ofApp::setup()
   
     // Setup box 2d.
     box2d.init();
-    box2d.setGravity(0, 1.5);
+    box2d.setGravity(55.0, 0);
     box2d.setFPS(100);
     box2d.enableEvents();
     box2d.registerGrabbing(); // Enable grabbing the circles.
@@ -40,15 +40,15 @@ void ofApp::setup()
   
     // Custom walls for this program.
     createCustomWalls();
-  
-    //box2d.createBounds(ofRectangle(0, 0, ofGetWidth() + meshVertexRadius, ofGetHeight() + meshVertexRadius));
+    //box2d.createBounds();
+    box2d.createGround(0, ofGetHeight(), ofGetWidth(), ofGetHeight());
   
     // Setup grabber.
     int height = ofGetHeight();
     int width = ofGetWidth();
     // If a webcame is attached, use that. 
     if (grabber.listDevices().size() > 1) {
-      grabber.setDeviceID(1);
+      grabber.setDeviceID(0);
     }
     grabber.setup(width, height);
   
@@ -90,7 +90,7 @@ void ofApp::update()
     }
   
     unsigned long elapsedTime = ofGetElapsedTimeMillis() - trackTime;
-    if (elapsedTime > 5 * 1000 && softBodies.size() <= 3) { // Every 5 seconds create a new one. No more than 3 soft bodies on the screen.
+    if (elapsedTime > 2 * 1000 && softBodies.size() <= 3) { // Every 5 seconds create a new one. No more than 3 soft bodies on the screen.
       newSubsection = true;
       trackTime = ofGetElapsedTimeMillis(); // Reset time.
     }
@@ -192,13 +192,17 @@ void ofApp::createCustomWalls() {
   
   ofRectangle rec(0/OFX_BOX2D_SCALE, 0/OFX_BOX2D_SCALE, ofGetWidth()/OFX_BOX2D_SCALE, ofGetHeight()/OFX_BOX2D_SCALE);
   
-  //right wall
-  shape.Set(b2Vec2(rec.x+rec.width, rec.y), b2Vec2(rec.x+rec.width, rec.y+rec.height));
+  // top wall (which is Left now)
+  shape.Set(b2Vec2(rec.x, rec.y), b2Vec2(rec.x+rec.width, rec.y));
   ground->CreateFixture(&shape, 0.0f);
-  
-  //left wall
-  shape.Set(b2Vec2(rec.x, rec.y), b2Vec2(rec.x, rec.y+rec.height));
-  ground->CreateFixture(&shape, 0.0f);
+
+//  //right wall
+//  shape.Set(b2Vec2(rec.x+rec.width, rec.y), b2Vec2(rec.x+rec.width, rec.y+rec.height));
+//  ground->CreateFixture(&shape, 0.0f);
+//
+//  //left wall
+//  shape.Set(b2Vec2(rec.x, rec.y), b2Vec2(rec.x, rec.y+rec.height));
+//  ground->CreateFixture(&shape, 0.0f);
 }
 
 void ofApp::contactStart(ofxBox2dContactArgs& e) {
@@ -206,10 +210,6 @@ void ofApp::contactStart(ofxBox2dContactArgs& e) {
 }
 
 void ofApp::populateFilters() {
-  Abstract3x3ConvolutionFilter * convolutionFilter2 = new Abstract3x3ConvolutionFilter(grabber.getWidth(), grabber.getHeight());
-    convolutionFilter2->setMatrix(4, 4, 4, 4, -32, 4, 4,  4, 4);
-  filters.push_back(convolutionFilter2);
-  filters.push_back(new SketchFilter(grabber.getWidth(), grabber.getHeight()));
   FilterChain * watercolorChain = new FilterChain(grabber.getWidth(), grabber.getHeight(), "Monet");
     watercolorChain->addFilter(new KuwaharaFilter(9));
     watercolorChain->addFilter(new LookupFilter(grabber.getWidth(), grabber.getHeight(), "img/lookup_miss_etikate.png"));
@@ -217,12 +217,13 @@ void ofApp::populateFilters() {
     watercolorChain->addFilter(new PoissonBlendFilter("img/canvas_texture.jpg", grabber.getWidth(), grabber.getHeight(), 2.0));
     watercolorChain->addFilter(new VignetteFilter());
   filters.push_back(watercolorChain);
-  filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
-  
-  filters.push_back(new DisplacementFilter("img/glass/3.jpg", grabber.getWidth(), grabber.getHeight(), 40.0));
   
   filters.push_back(new PerlinPixellationFilter(grabber.getWidth(), grabber.getHeight()));
   filters.push_back(new SobelEdgeDetectionFilter(grabber.getWidth(), grabber.getHeight()));
+  
+  filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
+  
+  filters.push_back(new DisplacementFilter("img/glass/3.jpg", grabber.getWidth(), grabber.getHeight(), 40.0));
 }
 
 // Recreate image subsections.
@@ -273,11 +274,27 @@ void ofApp::createSubsectionBody() {
   // Push this new subsection body to our collection.
   softBodies.push_back(body);
   
-  std::cout << softBodies.size() << endl;
+  std::cout << "Number of bodies: " << softBodies.size() << endl;
   
-  // Create new torn subsection and push it to the collection. 
-  Subsection tornSub = Subsection(s.origin, s.filterIdx);
-  tornSubsections.push_back(tornSub);
+  // If s.origin is in the subsection, then just edit that subsection.
+  bool found = false;
+  for (auto &tornSub: tornSubsections) {
+    // Check if these origins are equal.
+    if (tornSub.origin.x == s.origin.x && tornSub.origin.y == s.origin.y) {
+      // Update filter index in the tornSub to the new subsection.
+      tornSub.filterIdx = s.filterIdx;
+      std::cout << "Updating an already existing torn subsection: " << tornSubsections.size() << endl;
+      found = true;
+      break;
+    }
+  }
+  
+  if (!found) {
+    // Create new torn subsection since it hasn't been torn yet.
+    Subsection tornSub = Subsection(s.origin, s.filterIdx);
+    tornSubsections.push_back(tornSub);
+    std::cout << "No old torn subsection found. Adding a new one: " << tornSubsections.size() << endl;
+  }
   
   trackTime = ofGetElapsedTimeMillis();
 }

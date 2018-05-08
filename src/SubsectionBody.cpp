@@ -31,6 +31,7 @@ void SubsectionBody::update() {
   }
   
   if (isOutside == true) {
+    std::cout << "Removing soft bodies." << endl;
     // Remove all the vertices.
     ofRemove(vertices, [&](std::shared_ptr<ofxBox2dCircle> circle) {
       return true;
