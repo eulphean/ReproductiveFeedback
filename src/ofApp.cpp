@@ -9,7 +9,7 @@ void ofApp::setup()
   
     // Setup box 2d.
     box2d.init();
-    box2d.setGravity(55.0, 0);
+    box2d.setGravity(75.0, 0);
     box2d.setFPS(100);
     box2d.enableEvents();
     box2d.registerGrabbing(); // Enable grabbing the circles.
@@ -48,7 +48,7 @@ void ofApp::setup()
     int width = ofGetWidth();
     // If a webcame is attached, use that. 
     if (grabber.listDevices().size() > 1) {
-      grabber.setDeviceID(0);
+      grabber.setDeviceID(1);
     }
     grabber.setup(width, height);
   
@@ -90,7 +90,7 @@ void ofApp::update()
     }
   
     unsigned long elapsedTime = ofGetElapsedTimeMillis() - trackTime;
-    if (elapsedTime > 2 * 1000 && softBodies.size() <= 3) { // Every 5 seconds create a new one. No more than 3 soft bodies on the screen.
+    if (elapsedTime > 2 * 1000 && softBodies.size() <= 2) { // Every 5 seconds create a new one. No more than 3 soft bodies on the screen.
       newSubsection = true;
       trackTime = ofGetElapsedTimeMillis(); // Reset time.
     }
@@ -101,37 +101,81 @@ void ofApp::draw()
   ofPushMatrix();
     ofPushMatrix();
       // Translation to rotate the image.
+      // TODO: Rotate the image for the camera
+      // to be set from the other side.
       ofTranslate(grabber.getWidth(), 0);
       ofScale(-1, 1, 1);
-      // Base texture. This is where we start.
-      ofPushStyle();
+  
+      // Collate all the subsections with similar subsections to
+      // be draw under the same filter
+  
+      // Draw base texture if tornSubsections is not equal to
+      // imageSubsections
+      if (tornSubsections.size() != imageSubsections.size()) {
         filters[0] -> begin();
         grabber.draw(0, 0, grabber.getWidth(), grabber.getHeight());
         filters[0] -> end();
-      ofPopStyle();
-
-      // Torn subsections.
-      if (tornSubsections.size() > 0) {
-        for (auto s: tornSubsections) {
-          ofPushStyle();
-            filters[s.filterIdx] -> begin();
-            ofTexture tex = grabber.getTexture();
-            tex.drawSubsection(s.origin.x, s.origin.y, subsectionWidth, subsectionHeight, s.origin.x, s.origin.y);
-            filters[s.filterIdx] -> end();
-          ofPopStyle();
+      }
+  
+      // Go through each filter and check if any of the torn subsection
+      // or soft body have same filterIdx. If they do, draw them.
+      for (int idx = 0; idx < filters.size(); idx++) {
+        // Find all torn image subsections at current filter.
+        vector<Subsection> tornSubAtCurrentFilter;
+        for (auto tornSub: tornSubsections) {
+          if (tornSub.filterIdx == idx) {
+            tornSubAtCurrentFilter.push_back(tornSub);
+          }
+        }
+        
+        for (auto t: tornSubAtCurrentFilter) {
+          filters[idx] -> begin();
+          ofTexture tex = grabber.getTexture();
+          tex.drawSubsection(t.origin.x, t.origin.y, subsectionWidth, subsectionHeight, t.origin.x, t.origin.y);
+          filters[idx] -> end();
         }
       }
-
-      // Soft body.
-      for (auto b: softBodies) {
-        ofPushStyle();
-          filters[b.filterIdx] -> begin();
+  
+      for (int idx = 0; idx < filters.size(); idx++) {
+        // Find all soft bodies with the current filter.
+        vector<SubsectionBody> softBodyAtCurrentFilter;
+        for (auto b: softBodies) {
+          if (b.filterIdx == idx) {
+            softBodyAtCurrentFilter.push_back(b);
+          }
+        }
+        
+        for (auto b: softBodies) {
+          filters[idx] -> begin();
           grabber.getTexture().bind();
           b.draw(showSoftBody);
           grabber.getTexture().unbind();
-          filters[b.filterIdx] -> end();
-        ofPopStyle();
+          filters[idx] -> end();
+        }
       }
+
+      // Torn subsections.
+//      if (tornSubsections.size() > 0) {
+//        for (auto s: tornSubsections) {
+//          ofPushStyle();
+//            filters[s.filterIdx] -> begin();
+//            ofTexture tex = grabber.getTexture();
+//            tex.drawSubsection(s.origin.x, s.origin.y, subsectionWidth, subsectionHeight, s.origin.x, s.origin.y);
+//            filters[s.filterIdx] -> end();
+//          ofPopStyle();
+//        }
+//      }
+//
+//      // Soft body.
+//      for (auto b: softBodies) {
+//        ofPushStyle();
+//          filters[b.filterIdx] -> begin();
+//          grabber.getTexture().bind();
+//          b.draw(showSoftBody);
+//          grabber.getTexture().unbind();
+//          filters[b.filterIdx] -> end();
+//        ofPopStyle();
+//      }
 
       // Recreate the mesh.
       if (newSubsection) {
@@ -154,7 +198,6 @@ void ofApp::draw()
     gui.draw();
   }
 }
-
 
 void ofApp::keyPressed(int key) {
     switch (key) {
