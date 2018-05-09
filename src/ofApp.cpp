@@ -9,7 +9,7 @@ void ofApp::setup()
   
     // Setup box 2d.
     box2d.init();
-    box2d.setGravity(75.0, 0);
+    box2d.setGravity(-55.0, 0);
     box2d.setFPS(100);
     box2d.enableEvents();
     box2d.registerGrabbing(); // Enable grabbing the circles.
@@ -48,7 +48,7 @@ void ofApp::setup()
     int width = ofGetWidth();
     // If a webcame is attached, use that. 
     if (grabber.listDevices().size() > 1) {
-      grabber.setDeviceID(1);
+      grabber.setDeviceID(0);
     }
     grabber.setup(width, height);
   
@@ -98,14 +98,10 @@ void ofApp::update()
 
 void ofApp::draw()
 {
+  std::cout<<"Frame rate: " << ofGetFrameRate() << endl;
+  
   ofPushMatrix();
     ofPushMatrix();
-      // Translation to rotate the image.
-      // TODO: Rotate the image for the camera
-      // to be set from the other side.
-      ofTranslate(grabber.getWidth(), 0);
-      ofScale(-1, 1, 1);
-  
       // Collate all the subsections with similar subsections to
       // be draw under the same filter
   
@@ -349,8 +345,6 @@ void ofApp::createSubsectionBody() {
   
   // Push this new subsection body to our collection.
   softBodies.push_back(body);
-  
-  std::cout << "Number of bodies: " << softBodies.size() << endl;
   
   // If s.origin is in the subsection, then just edit that subsection.
   bool found = false;
