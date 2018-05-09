@@ -210,6 +210,7 @@ void ofApp::contactStart(ofxBox2dContactArgs& e) {
 }
 
 void ofApp::populateFilters() {
+  // Monet
   FilterChain * watercolorChain = new FilterChain(grabber.getWidth(), grabber.getHeight(), "Monet");
     watercolorChain->addFilter(new KuwaharaFilter(9));
     watercolorChain->addFilter(new LookupFilter(grabber.getWidth(), grabber.getHeight(), "img/lookup_miss_etikate.png"));
@@ -218,12 +219,44 @@ void ofApp::populateFilters() {
     watercolorChain->addFilter(new VignetteFilter());
   filters.push_back(watercolorChain);
   
+  //  Smooth tone
+  filters.push_back(new SmoothToonFilter(grabber.getWidth(), grabber.getHeight()));
+  
+  // Lookup
+  filters.push_back(new LookupFilter(grabber.getWidth(), grabber.getHeight(), "img/lookup_miss_etikate.png"));
+
+  
+ // Perlin Pixellation
   filters.push_back(new PerlinPixellationFilter(grabber.getWidth(), grabber.getHeight()));
-  filters.push_back(new SobelEdgeDetectionFilter(grabber.getWidth(), grabber.getHeight()));
   
-  filters.push_back(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
+  filters.push_back(new VignetteFilter());
+  filters.push_back(new PosterizeFilter(5));
+
+  // Displacement
+  filters.push_back(new DisplacementFilter("img/glass/3.jpg", grabber.getWidth(), grabber.getHeight(), 30.0));
+//
+  Abstract3x3ConvolutionFilter * convolutionFilter3 = new Abstract3x3ConvolutionFilter(grabber.getWidth(), grabber.getHeight());
+  convolutionFilter3->setMatrix(1.2,  1.2, 1.2, 1.2, -9.0, 1.2, 1.2,  1.2, 1.2);
+  filters.push_back(convolutionFilter3);
   
-  filters.push_back(new DisplacementFilter("img/glass/3.jpg", grabber.getWidth(), grabber.getHeight(), 40.0));
+  // Textured glass.
+  FilterChain * foggyTexturedGlassChain = new FilterChain(grabber.getWidth(), grabber.getHeight(), "Weird Glass");
+  foggyTexturedGlassChain->addFilter(new PerlinPixellationFilter(grabber.getWidth(), grabber.getHeight(), 13.f));
+  foggyTexturedGlassChain->addFilter(new EmbossFilter(grabber.getWidth(), grabber.getHeight(), 0.5));
+  foggyTexturedGlassChain->addFilter(new GaussianBlurFilter(grabber.getWidth(), grabber.getHeight(), 3.f));
+  filters.push_back(foggyTexturedGlassChain);
+
+  filters.push_back(new KuwaharaFilter(6));
+  
+  filters.push_back(new PixelateFilter(grabber.getWidth(), grabber.getHeight()));
+  
+  FilterChain * voronoiChain = new FilterChain(grabber.getWidth(), grabber.getHeight(), "Voronoi");
+  voronoiChain->addFilter(new VoronoiFilter(grabber.getTextureReference()));
+  voronoiChain->addFilter(new KuwaharaFilter(9));
+  voronoiChain->addFilter(new LookupFilter(grabber.getWidth(), grabber.getHeight(), "img/lookup_miss_etikate.png"));
+  voronoiChain->addFilter(new BilateralFilter(grabber.getWidth(), grabber.getHeight()));
+  voronoiChain->addFilter(new PoissonBlendFilter("img/canvas_texture.jpg", grabber.getWidth(), grabber.getHeight(), 2.0));
+  filters.push_back(voronoiChain);
 }
 
 // Recreate image subsections.
@@ -283,7 +316,7 @@ void ofApp::createSubsectionBody() {
     if (tornSub.origin.x == s.origin.x && tornSub.origin.y == s.origin.y) {
       // Update filter index in the tornSub to the new subsection.
       tornSub.filterIdx = s.filterIdx;
-      std::cout << "Updating an already existing torn subsection: " << tornSubsections.size() << endl;
+      std::cout << "Updating an already existing torn subsection: " << tornSubsections.size() << ", " << tornSub.filterIdx <<  endl;
       found = true;
       break;
     }
